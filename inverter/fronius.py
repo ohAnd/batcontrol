@@ -318,29 +318,38 @@ class FroniusWR(InverterBaseclass):
         return self.set_time_of_use(timeofuselist)
 
     def set_mode_allow_discharge(self):
-        """ Set the inverter to discharge the battery."""
+        """ Set the inverter to discharge the battery."""      
         timeofuselist = []
         # 1. entry in schedule - limit the charge rate to max_pv_charge_rate
         if self.max_pv_charge_rate > 0:
-            timeofuselist = [{'Active': True,
+            max_charge_item = {'Active': True,
                               'Power': int(self.max_pv_charge_rate),
                               'ScheduleType': 'CHARGE_MAX',
                               "TimeTable": {"Start": "00:00", "End": "23:59"},
                               "Weekdays": {"Mon": True, "Tue": True, "Wed": True, "Thu": True, "Fri": True, "Sat": True, "Sun": True}
-                              }]
-        response = self.set_time_of_use(timeofuselist)
-        logger.debug('[Inverter] set_mode_allow_discharge - 1. entry in schedule - set max pv charge rate to %s', str(int(self.max_pv_charge_rate)))
+                              }
+            timeofuselist.append(max_charge_item)
+            logger.debug('[Inverter] set_mode_allow_discharge - 1. entry in schedule - set max pv charge rate to %s', str(int(self.max_pv_charge_rate)))
+        else:
+            logger.debug('[Inverter] set_mode_allow_discharge - 1. entry in schedule NOT set - no max pv charge rate set')
         # 2. entry in schedule - limit the discharge rate to max_bat_discharge_rate
         if self.max_bat_discharge_rate > 0:
-            timeofuselist = [{'Active': True,
+            max_discharge_item = {'Active': True,
                               'Power': int(self.max_bat_discharge_rate),
                               'ScheduleType': 'DISCHARGE_MAX',
                               "TimeTable": {"Start": "00:00", "End": "23:59"},
                               "Weekdays": {"Mon": True, "Tue": True, "Wed": True, "Thu": True, "Fri": True, "Sat": True, "Sun": True}
-                              }]
-        response = self.set_time_of_use(timeofuselist)
-        logger.debug('[Inverter] set_mode_allow_discharge - 2. entry in schedule - set max bat discharge rate to %s', str(int(self.max_bat_discharge_rate)))
-        return response
+                              }
+            timeofuselist.append(max_discharge_item)    
+            logger.debug('[Inverter] set_mode_allow_discharge - 2. entry in schedule - set max bat discharge rate to %s', str(int(self.max_bat_discharge_rate)))
+        else:
+            logger.debug('[Inverter] set_mode_allow_discharge - 2. entry in schedule NOT set - no max bat discharge rate set')
+        if len(timeofuselist) > 0:
+            response = self.set_time_of_use(timeofuselist)
+            return response
+        else:
+            logger.error('[Inverter] set_mode_allow_discharge - no time of use entries set')
+            return None
 
     def set_mode_force_charge(self, chargerate=500):
         """ Set the inverter to charge the battery with a specific power from GRID."""
