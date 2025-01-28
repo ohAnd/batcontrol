@@ -322,7 +322,7 @@ class FroniusWR(InverterBaseclass):
         if self.max_pv_charge_rate > 0:
             timeofuselist = [{'Active': True,
                               'Power': int(self.max_pv_charge_rate),
-                              'ScheduleType': 'CHARGE_MAX',
+                              'ScheduleType': 'DISCHARGE_MAX',
                               "TimeTable": {"Start": "00:00", "End": "23:59"},
                               "Weekdays": {"Mon": True, "Tue": True, "Wed": True, "Thu": True, "Fri": True, "Sat": True, "Sun": True}
                               }]
