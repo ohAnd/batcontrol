@@ -49,6 +49,7 @@ class FroniusWR(InverterBaseclass):
         self.capacity = -1
         self.max_grid_charge_rate = config['max_grid_charge_rate']
         self.max_pv_charge_rate = config['max_pv_charge_rate']
+        self.max_bat_discharge_rate = config['max_bat_discharge_rate']
         self.nonce = 0
         self.user = config['user']
         self.password = config['password']
@@ -319,15 +320,26 @@ class FroniusWR(InverterBaseclass):
     def set_mode_allow_discharge(self):
         """ Set the inverter to discharge the battery."""
         timeofuselist = []
+        # 1. entry in schedule - limit the charge rate to max_pv_charge_rate
         if self.max_pv_charge_rate > 0:
             timeofuselist = [{'Active': True,
                               'Power': int(self.max_pv_charge_rate),
+                              'ScheduleType': 'CHARGE_MAX',
+                              "TimeTable": {"Start": "00:00", "End": "23:59"},
+                              "Weekdays": {"Mon": True, "Tue": True, "Wed": True, "Thu": True, "Fri": True, "Sat": True, "Sun": True}
+                              }]
+        response = self.set_time_of_use(timeofuselist)
+        logger.debug('[Inverter] set_mode_allow_discharge - 1. entry in schedule - set max pv charge rate to %s', str(int(self.max_pv_charge_rate)))
+        # 2. entry in schedule - limit the discharge rate to max_bat_discharge_rate
+        if self.max_bat_discharge_rate > 0:
+            timeofuselist = [{'Active': True,
+                              'Power': int(self.max_bat_discharge_rate),
                               'ScheduleType': 'DISCHARGE_MAX',
                               "TimeTable": {"Start": "00:00", "End": "23:59"},
                               "Weekdays": {"Mon": True, "Tue": True, "Wed": True, "Thu": True, "Fri": True, "Sat": True, "Sun": True}
                               }]
         response = self.set_time_of_use(timeofuselist)
-
+        logger.debug('[Inverter] set_mode_allow_discharge - 2. entry in schedule - set max bat discharge rate to %s', str(int(self.max_bat_discharge_rate)))
         return response
 
     def set_mode_force_charge(self, chargerate=500):
@@ -557,6 +569,8 @@ class FroniusWR(InverterBaseclass):
                                           used to load the battery from the grid.
         - max_pv_charge_rate (int): Maximum power in W that can be
                                           used to load the battery from the PV.
+        - max_bat_discharge_rate (int): Maximum power in W that can be
+                                          used to discharge the battery for house consumption.
 
         Args:
             api_mqtt_api: The MQTT API instance to be used for registering callbacks.
@@ -565,34 +579,25 @@ class FroniusWR(InverterBaseclass):
         import mqtt_api
         self.mqtt_api = api_mqtt_api
         # /set is appended to the topic
-        self.mqtt_api.register_set_callback(self.__get_mqtt_topic(
-        ) + 'max_grid_charge_rate', self.api_set_max_grid_charge_rate, int)
-        self.mqtt_api.register_set_callback(self.__get_mqtt_topic(
-        ) + 'max_pv_charge_rate', self.api_set_max_pv_charge_rate, int)
+        self.mqtt_api.register_set_callback(self.__get_mqtt_topic() + 'max_grid_charge_rate', self.api_set_max_grid_charge_rate, int)
+        self.mqtt_api.register_set_callback(self.__get_mqtt_topic() + 'max_pv_charge_rate', self.api_set_max_pv_charge_rate, int)
+        self.mqtt_api.register_set_callback(self.__get_mqtt_topic() + 'max_bat_discharge_rate', self.api_set_max_bat_discharge_rate, int)
 
     def refresh_api_values(self):
         """ Publishes all values to mqtt."""
         if self.mqtt_api:
             self.mqtt_api.generic_publish(
                 self.__get_mqtt_topic() + 'SOC', self.get_SOC())
-            self.mqtt_api.generic_publish(
-                self.__get_mqtt_topic() + 'stored_energy', self.get_stored_energy())
-            self.mqtt_api.generic_publish(
-                self.__get_mqtt_topic() + 'free_capacity', self.get_free_capacity())
-            self.mqtt_api.generic_publish(
-                self.__get_mqtt_topic() + 'max_capacity', self.get_max_capacity())
-            self.mqtt_api.generic_publish(self.__get_mqtt_topic(
-            ) + 'usable_capacity', self.get_usable_capacity())
-            self.mqtt_api.generic_publish(self.__get_mqtt_topic(
-            ) + 'max_grid_charge_rate', self.max_grid_charge_rate)
-            self.mqtt_api.generic_publish(self.__get_mqtt_topic(
-            ) + 'max_pv_charge_rate', self.max_pv_charge_rate)
-            self.mqtt_api.generic_publish(
-                self.__get_mqtt_topic() + 'min_soc', self.min_soc)
-            self.mqtt_api.generic_publish(
-                self.__get_mqtt_topic() + 'max_soc', self.max_soc)
-            self.mqtt_api.generic_publish(
-                self.__get_mqtt_topic() + 'capacity', self.get_capacity())
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'stored_energy', self.get_stored_energy())
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'free_capacity', self.get_free_capacity())
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'max_capacity', self.get_max_capacity())
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'usable_capacity', self.get_usable_capacity())
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'max_grid_charge_rate', self.max_grid_charge_rate)
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'max_pv_charge_rate', self.max_pv_charge_rate)
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'max_bat_discharge_rate', self.max_bat_discharge_rate)
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'min_soc', self.min_soc)
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'max_soc', self.max_soc)
+            self.mqtt_api.generic_publish(self.__get_mqtt_topic() + 'capacity', self.get_capacity())
 
     def api_set_max_grid_charge_rate(self, max_grid_charge_rate: int):
         """ Set the maximum power in W that can be used to load the battery from the grid."""
@@ -621,6 +626,20 @@ class FroniusWR(InverterBaseclass):
             max_pv_charge_rate
         )
         self.max_pv_charge_rate = max_pv_charge_rate
+        
+    def api_set_max_bat_discharge_rate(self, max_bat_discharge_rate: int):
+        """ Set the maximum power in W that can be used to discharge the battery for house consumption."""
+        if max_bat_discharge_rate < 0:
+            logger.warning(
+                '[Inverter] API: Invalid max_bat_discharge_rate %s',
+                max_bat_discharge_rate
+            )
+            return
+        logger.info(
+            '[Inverter] API: Setting max_bat_discharge_rate: %.1fW',
+            max_bat_discharge_rate
+        )
+        self.max_bat_discharge_rate = max_bat_discharge_rate
 
     def __get_mqtt_topic(self) -> str:
         """ Used to implement the mqtt basic topic."""
