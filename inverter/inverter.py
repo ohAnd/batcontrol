@@ -19,6 +19,8 @@ class Inverter:
         # in case there is no value defined in the config file to avoid a KeyError
         if not 'max_pv_charge_rate' in config.keys():
             config['max_pv_charge_rate'] = 0
+        if not 'max_bat_discharge_rate' in config.keys():
+            config['max_bat_discharge_rate'] = 0
 
         inverter = None
 
@@ -30,7 +32,8 @@ class Inverter:
                 'user': config['user'],
                 'password': config['password'],
                 'max_grid_charge_rate': config['max_grid_charge_rate'],
-                'max_pv_charge_rate': config['max_pv_charge_rate']
+                'max_pv_charge_rate': config['max_pv_charge_rate'],
+                'max_bat_discharge_rate': config['max_bat_discharge_rate']
             }
             inverter=FroniusWR(iv_config)
         elif config['type'].lower() == 'testdriver':

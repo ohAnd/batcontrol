@@ -20,7 +20,7 @@ To correctly configure the software for your home, you will need to adapt the se
 ### MODE 10 - DISCHARGE ALLOWED . 
 This is the normal mode of the battery if there is sufficient energy available or energy is currently expensive. If the battery is full the surplus will be fed into the grid. If there is not enough energy coming from your pv installatation to meet your demand energy from the battery will be used. 
 
-In addition it is possible to limit the battery charge using the configuration parameter ``max_pv_charge_rate``. At a battery SOC above ``always_allow_discharge_limit`` batcontrol will always allow discharging.
+In addition it is possible to limit the battery charge using the configuration parameter ``max_pv_charge_rate``. Furthermore the option ``max_bat_discharge_rate`` is available to limit the discharge power during discharge allowed, if needed. At a battery SOC above ``always_allow_discharge_limit`` batcontrol will always allow discharging.
 
 ### MODE 0 - AVOID DISCHARGE. 
 If your consumption exceeds your current production energy from the grid will be used and the battery will not be discharged. This mode is used if prices are increasing in the future and the energy from the battery can be more efficiently used in the future. Direct consumption is not affected.
