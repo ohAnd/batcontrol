@@ -85,15 +85,6 @@ class FroniusWR(InverterBaseclass):
         #   positive = Get from grid
         self.em_power = self.previous_battery_config['HYB_EM_POWER']
 
-        # Energy Management (EM)
-        #  0 - On  (Automatic , Default)
-        #  1 - Off (Adjustable)
-        self.em_mode = self.previous_battery_config['HYB_EM_MODE']
-        # Power in W  on in em_mode = 0
-        #   negative = Feed-In (to grid)
-        #   positive = Get from grid
-        self.em_power = self.previous_battery_config['HYB_EM_POWER']
-
         self.set_solar_api_active(True)
 
         if not self.previous_battery_config:
@@ -360,7 +351,7 @@ class FroniusWR(InverterBaseclass):
         return self.set_time_of_use(timeofuselist)
 
     def set_mode_allow_discharge(self):
-        """ Set the inverter to discharge the battery."""      
+        """ Set the inverter to discharge the battery."""
         timeofuselist = []
         # 1. entry in schedule - limit the charge rate to max_pv_charge_rate
         if self.max_pv_charge_rate > 0:
@@ -368,7 +359,14 @@ class FroniusWR(InverterBaseclass):
                               'Power': int(self.max_pv_charge_rate),
                               'ScheduleType': 'CHARGE_MAX',
                               "TimeTable": {"Start": "00:00", "End": "23:59"},
-                              "Weekdays": {"Mon": True, "Tue": True, "Wed": True, "Thu": True, "Fri": True, "Sat": True, "Sun": True}
+                              "Weekdays":
+                                  {"Mon": True,
+                                   "Tue": True,
+                                   "Wed": True,
+                                   "Thu": True,
+                                   "Fri": True,
+                                   "Sat": True,
+                                   "Sun": True}
                               }
             timeofuselist.append(max_charge_item)
             logger.debug('[Inverter] set_mode_allow_discharge - 1. entry in schedule - set max pv charge rate to %s', str(int(self.max_pv_charge_rate)))
@@ -748,7 +746,7 @@ class FroniusWR(InverterBaseclass):
 
         """
         self.mqtt_api = api_mqtt_api
-        # /set is appended to the topic        
+        # /set is appended to the topic
         self.mqtt_api.register_set_callback(self.__get_mqtt_topic(
         ) + 'max_grid_charge_rate', self.api_set_max_grid_charge_rate, int)
         self.mqtt_api.register_set_callback(self.__get_mqtt_topic(
@@ -760,7 +758,7 @@ class FroniusWR(InverterBaseclass):
 
     def refresh_api_values(self):
         """ Publishes all values to mqtt."""
-        if self.mqtt_api:            
+        if self.mqtt_api:
             self.mqtt_api.generic_publish(
                 self.__get_mqtt_topic() + 'SOC', self.get_SOC())
             self.mqtt_api.generic_publish(
@@ -829,43 +827,6 @@ class FroniusWR(InverterBaseclass):
             max_bat_discharge_rate
         )
         self.max_bat_discharge_rate = max_bat_discharge_rate
-
-    def api_set_em_mode(self, em_mode: int):
-        """ Set the Energy Management Mode."""
-        if not isinstance(em_mode , int):
-            logger.warning(
-                '[Inverter] API: Invalid type em_mode %s',
-                em_mode
-            )
-            return
-        if em_mode < 0 or em_mode > 2:
-            logger.warning(
-                '[Inverter] API: Invalid em_mode %s',
-                em_mode
-            )
-            return
-        logger.info(
-            '[Inverter] API: Setting em_mode: %s',
-            em_mode
-        )
-        self.set_em_mode(em_mode)
-
-    def api_set_em_power(self, em_power: int):
-        """ Change EnergeManagement Offset
-            positive = get from grid
-            negative = feed to grid
-        """
-        if not isinstance(em_power , int):
-            logger.warning(
-                '[Inverter] API: Invalid type em_power %s',
-                em_power
-            )
-            return
-        logger.info(
-            '[Inverter] API: Setting em_power: %s',
-            em_power
-        )
-        self.set_em_power(em_power)
 
     def api_set_em_mode(self, em_mode: int):
         """ Set the Energy Management Mode."""
