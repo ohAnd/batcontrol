@@ -76,6 +76,14 @@ class FroniusWR(InverterBaseclass):
         # default values
         self.max_soc = 100
         self.min_soc = 5
+        # Energy Management (EM)
+        #  0 - On  (Automatic , Default)
+        #  1 - Off (Adjustable)
+        self.em_mode = self.previous_battery_config['HYB_EM_MODE']
+        # Power in W  on in em_mode = 0
+        #   negative = Feed-In (to grid)
+        #   positive = Get from grid
+        self.em_power = self.previous_battery_config['HYB_EM_POWER']
 
         # Energy Management (EM)
         #  0 - On  (Automatic , Default)
@@ -746,8 +754,6 @@ class FroniusWR(InverterBaseclass):
         self.mqtt_api.register_set_callback(self.__get_mqtt_topic(
         ) + 'max_pv_charge_rate', self.api_set_max_pv_charge_rate, int)
         self.mqtt_api.register_set_callback(self.__get_mqtt_topic(
-        ) + 'max_bat_discharge_rate', self.api_set_max_bat_discharge_rate, int)
-        self.mqtt_api.register_set_callback(self.__get_mqtt_topic(
         ) + 'em_mode', self.api_set_em_mode, int)
         self.mqtt_api.register_set_callback(self.__get_mqtt_topic(
         ) + 'em_power', self.api_set_em_power, int)
@@ -823,6 +829,43 @@ class FroniusWR(InverterBaseclass):
             max_bat_discharge_rate
         )
         self.max_bat_discharge_rate = max_bat_discharge_rate
+
+    def api_set_em_mode(self, em_mode: int):
+        """ Set the Energy Management Mode."""
+        if not isinstance(em_mode , int):
+            logger.warning(
+                '[Inverter] API: Invalid type em_mode %s',
+                em_mode
+            )
+            return
+        if em_mode < 0 or em_mode > 2:
+            logger.warning(
+                '[Inverter] API: Invalid em_mode %s',
+                em_mode
+            )
+            return
+        logger.info(
+            '[Inverter] API: Setting em_mode: %s',
+            em_mode
+        )
+        self.set_em_mode(em_mode)
+
+    def api_set_em_power(self, em_power: int):
+        """ Change EnergeManagement Offset
+            positive = get from grid
+            negative = feed to grid
+        """
+        if not isinstance(em_power , int):
+            logger.warning(
+                '[Inverter] API: Invalid type em_power %s',
+                em_power
+            )
+            return
+        logger.info(
+            '[Inverter] API: Setting em_power: %s',
+            em_power
+        )
+        self.set_em_power(em_power)
 
     def api_set_em_mode(self, em_mode: int):
         """ Set the Energy Management Mode."""
