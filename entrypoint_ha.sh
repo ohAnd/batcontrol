@@ -40,5 +40,8 @@ fi
 # Create a symlink to /app/log/batcontrol.log
 ln -sf $LOG_FILE /app/logs/batcontrol.log
 
+# Set PYTHONPATH to include the location of the module
+export PYTHONPATH="/app/src:$PYTHONPATH"
+
 # Start batcontrol.py
 exec python -m batcontrol
